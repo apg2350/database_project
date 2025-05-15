@@ -23,6 +23,7 @@ You need to redesign tables based on the ER Diagram that you think is the best
 fit for the data.
 Task 2: (5 pt) Build a database (named as robot.db) via Python and SQLite
 and import the data in the CSV file into the database.
+
 Task 3: (5 pt) Using SQL, return the following information related to meta-info
 of the data (print out the query result is sufficient).
 1. A table consists of the names of robots and the maximal x-axis, minimum
@@ -44,7 +45,7 @@ each row consists the interval id, and the answer (Yes or No). Feel free to
 use python to print out this table.
 
 The robot.py file creates the database and imports all of the files used for this project(t1, t2, t3, t4, t5, target_interval.csv, robot.csv)
-The test.py file contains all of the SQL queries for task 4 and 5 as well as the bonus.
+The test.py file contains all of the SQL queries for tasks 3 and 4 as well as the bonus.
 
 To create the database and import all the files, use the following command: python3 robot.py
 To run sql queries, use the following command: python3 test.py
