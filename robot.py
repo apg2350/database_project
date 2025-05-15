@@ -1,13 +1,18 @@
 import sqlite3
-import pandas as pd
+import csv
 import os
 
-# Remove existing database file if it exists
-if os.path.exists('robot.db'):
-    os.remove('robot.db')
-    print("Existing database deleted.")
+# Files and robot ID mapping
+robot_csv = 'robot.csv'
+robot_files = {
+    't1.csv': 1,  # Astro
+    't2.csv': 2,  # IamHuman
+    't3.csv': 3,  # MoonLander
+    't4.csv': 4,  # Wonderlust
+    't5.csv': 5,  # Challenger
+}
 
-# Create the database
+# Connect to SQLite DB (creates if not exists)
 conn = sqlite3.connect('robot.db')
 cursor = conn.cursor()
 
@@ -15,7 +20,7 @@ cursor = conn.cursor()
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS Robot (
     RobotID INTEGER PRIMARY KEY,
-    Name TEXT
+    Name TEXT NOT NULL UNIQUE
 );
 ''')
 
@@ -23,53 +28,56 @@ cursor.execute('''
 CREATE TABLE IF NOT EXISTS SensorReading (
     ReadingID INTEGER PRIMARY KEY AUTOINCREMENT,
     RobotID INTEGER,
-    Timestamp INTEGER,
     X_Axis REAL,
     Y_Axis REAL,
+    Timestamp INTEGER,
     FOREIGN KEY (RobotID) REFERENCES Robot(RobotID)
 );
 ''')
 
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS TargetInterval (
-    IntervalID INTEGER PRIMARY KEY AUTOINCREMENT,
-    StartTime INTEGER,
-    EndTime INTEGER,
-    EventType TEXT
-);
-''')
+conn.commit()
 
-cursor.execute('''
-CREATE TABLE IF NOT EXISTS RobotInterval (
-    RobotID INTEGER,
-    IntervalID INTEGER,
-    PRIMARY KEY (RobotID, IntervalID),
-    FOREIGN KEY (RobotID) REFERENCES Robot(RobotID),
-    FOREIGN KEY (IntervalID) REFERENCES TargetInterval(IntervalID)
-);
-''')
+# Import robots from robot.csv
+print("Importing robots...")
+with open(robot_csv, newline='') as f:
+    reader = csv.reader(f)
+    for row in reader:
+        if len(row) < 2:
+            continue
+        robot_id = int(row[0])
+        robot_name = row[1].strip()
+        cursor.execute('INSERT OR IGNORE INTO Robot (RobotID, Name) VALUES (?, ?)', (robot_id, robot_name))
+conn.commit()
 
-# Load and insert robot data
-robots = pd.read_csv('robot.csv')
-robots.columns = ['RobotID', 'Name']
-robots.to_sql('Robot', conn, if_exists='replace', index=False)
+# Import sensor readings for each robot file
+print("Importing sensor readings...")
+for filename, robot_id in robot_files.items():
+    if not os.path.exists(filename):
+        print(f"Warning: File {filename} not found. Skipping.")
+        continue
 
-# Load and insert sensor readings
-tables = ['t1.csv', 't2.csv', 't3.csv', 't4.csv', 't5.csv']
-for table in tables:
-    robot_id = int(table[1])  # Extract robot ID from filename like 't1.csv'
-    readings = pd.read_csv(table, header=None)
-    readings.columns = ['X_Axis', 'Y_Axis']
-    readings.insert(0, 'Timestamp', range(1, len(readings) + 1))
-    readings.insert(0, 'RobotID', robot_id)
-    readings.to_sql('SensorReading', conn, if_exists='append', index=False)
-
-# Load and insert target intervals
-target_intervals = pd.read_csv('target_interval.csv')
-target_intervals.columns = ['StartTime', 'EndTime', 'EventType']
-target_intervals.to_sql('TargetInterval', conn, if_exists='replace', index=False)
-
-print("Database setup and data import complete.")
+    with open(filename, newline='') as f:
+        reader = csv.reader(f)
+        timestamp = 1
+        for row in reader:
+            if len(row) < 2:
+                timestamp += 1
+                continue
+            x_str, y_str = row[0].strip(), row[1].strip()
+            # Skip rows with unknown or invalid data
+            try:
+                x = float(x_str)
+                y = float(y_str)
+            except ValueError:
+                timestamp += 1
+                continue
+            
+            cursor.execute('''
+                INSERT INTO SensorReading (RobotID, X_Axis, Y_Axis, Timestamp)
+                VALUES (?, ?, ?, ?)
+            ''', (robot_id, x, y, timestamp))
+            timestamp += 1
 
 conn.commit()
 conn.close()
+print("Data import complete.")
