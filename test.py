@@ -81,15 +81,7 @@ print('Task 4: Close regions between Astro and IamHuman:')
 for row in cursor.fetchall():
     print(row)
 
-# Bonus: Check if average speed is smaller than 0.2 cm/s during target intervals
-cursor.execute('''SELECT IntervalID, StartTime, EndTime,
-                 CASE WHEN AVG((ABS(X_Axis) + ABS(Y_Axis)) / (EndTime - StartTime)) < 0.2 THEN 'Yes' ELSE 'No' END AS SpeedCheck
-                 FROM TargetInterval, SensorReading
-                 WHERE Timestamp BETWEEN StartTime AND EndTime
-                 GROUP BY IntervalID;''')
-print('Bonus: Average speed check:')
-for row in cursor.fetchall():
-    print(row)
+
 
 # Commit and close connection
 conn.commit()
