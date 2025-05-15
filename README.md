@@ -1,6 +1,6 @@
 # database_project
 
-CSCI4333 Database Project
+## CSCI4333 Database Project
 Swarm Robot Trajectory Database
 Swarm robots are tiny robots that can perform programmed actions independently without human interference. These tiny robots are crucial for many
 real-world tasks (e.g. resource foraging). Yet, ensuring robot swarm system is
