@@ -73,7 +73,7 @@ for row in cursor.fetchall():
 
 # Task 4: Regions where 'Astro' and 'IamHuman' are close
 cursor.execute('''SELECT s1.X_Axis, s1.Y_Axis, s2.X_Axis, s2.Y_Axis, s1.Timestamp
-                 FROM SensorReading s1, SensorReading s2
+                 FROM SensorReading s1 JOIN SensorReading s2 ON s1.Timestamp = s2.Timestamp
                  WHERE s1.RobotID = 1 AND s2.RobotID = 2
                  AND ABS(s1.X_Axis - s2.X_Axis) < 1
                  AND ABS(s1.Y_Axis - s2.Y_Axis) < 1;''')
