@@ -27,9 +27,9 @@ cursor.execute(query_task3_y)
 for row in cursor.fetchall():
     print(row)
 
-# --- Task 4 (Updated with correct robot names) ---
+# --- Task 4 (Updated for Astro and IamHuman with threshold 1 cm) ---
 
-print("\nTask 4: Regions where 'Challenger' and 'IamHuman' are close at each timestamp (threshold = 2 cm):")
+print("\nTask 4: Regions where 'Astro' and 'IamHuman' are close at each timestamp (threshold = 1 cm):")
 query_task4_regions = '''
 SELECT
   MIN(a.X_Axis) AS x_min,
@@ -41,9 +41,9 @@ FROM SensorReading a
 JOIN SensorReading b ON a.Timestamp = b.Timestamp
 JOIN Robot ra ON a.RobotID = ra.RobotID
 JOIN Robot rb ON b.RobotID = rb.RobotID
-WHERE ra.Name = 'Challenger' AND rb.Name = 'IamHuman'
-  AND ABS(a.X_Axis - b.X_Axis) < 2
-  AND ABS(a.Y_Axis - b.Y_Axis) < 2
+WHERE ra.Name = 'Astro' AND rb.Name = 'IamHuman'
+  AND ABS(a.X_Axis - b.X_Axis) < 1
+  AND ABS(a.Y_Axis - b.Y_Axis) < 1
 GROUP BY a.Timestamp
 ORDER BY a.Timestamp;
 '''
@@ -55,16 +55,16 @@ if regions:
 else:
     print("No close regions found.")
 
-print("\nTask 4: Total seconds 'Challenger' and 'IamHuman' are close (threshold = 2 cm):")
+print("\nTask 4: Total seconds 'Astro' and 'IamHuman' are close (threshold = 1 cm):")
 query_task4_count = '''
 SELECT COUNT(*) 
 FROM SensorReading a
 JOIN SensorReading b ON a.Timestamp = b.Timestamp
 JOIN Robot ra ON a.RobotID = ra.RobotID
 JOIN Robot rb ON b.RobotID = rb.RobotID
-WHERE ra.Name = 'Challenger' AND rb.Name = 'IamHuman'
-  AND ABS(a.X_Axis - b.X_Axis) < 2
-  AND ABS(a.Y_Axis - b.Y_Axis) < 2;
+WHERE ra.Name = 'Astro' AND rb.Name = 'IamHuman'
+  AND ABS(a.X_Axis - b.X_Axis) < 1
+  AND ABS(a.Y_Axis - b.Y_Axis) < 1;
 '''
 cursor.execute(query_task4_count)
 count = cursor.fetchone()[0]
