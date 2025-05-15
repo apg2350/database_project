@@ -47,5 +47,5 @@ use python to print out this table.
 The robot.py file creates the database and imports all of the files used for this project(t1, t2, t3, t4, t5, target_interval.csv, robot.csv)
 The test.py file contains all of the SQL queries for tasks 3 and 4 as well as the bonus.
 
-To create the database and import all the files, use the following command: python3 robot.py
+To create the database and import all the files, use the following command: python3 robot.py\
 To run sql queries, use the following command: python3 test.py
