@@ -72,16 +72,29 @@ for row in cursor.fetchall():
     print(row)
 
 # Task 4: Regions where 'Astro' and 'IamHuman' are close
-cursor.execute('''SELECT s1.Timestamp, s1.X_Axis, s1.Y_Axis, s2.X_Axis, s2.Y_Axis
+cursor.execute('''SELECT s1.X_Axis, s1.Y_Axis, s2.X_Axis, s2.Y_Axis, s1.Timestamp
                  FROM SensorReading s1, SensorReading s2
                  WHERE s1.RobotID = 1 AND s2.RobotID = 2
                  AND ABS(s1.X_Axis - s2.X_Axis) < 1
                  AND ABS(s1.Y_Axis - s2.Y_Axis) < 1;''')
-print('Task 4: Close regions between Astro and IamHuman:')
-for row in cursor.fetchall():
+print("Task 4: Regions where 'Astro' and 'IamHuman' are close:")
+close_regions = cursor.fetchall()
+for row in close_regions:
     print(row)
 
+# Task 4: Total seconds they are close
+close_seconds = len(close_regions)
+print(f"Task 4: Total seconds 'Astro' and 'IamHuman' are close: {close_seconds}")
 
+# Bonus: Check if average speed is smaller than 0.2 cm/s during target intervals
+cursor.execute('''SELECT IntervalID, StartTime, EndTime,
+                 CASE WHEN AVG((ABS(X_Axis) + ABS(Y_Axis)) / (EndTime - StartTime)) < 0.2 THEN 'Yes' ELSE 'No' END AS SpeedCheck
+                 FROM TargetInterval, SensorReading
+                 WHERE Timestamp BETWEEN StartTime AND EndTime
+                 GROUP BY IntervalID;''')
+print('Bonus: Average speed check:')
+for row in cursor.fetchall():
+    print(row)
 
 # Commit and close connection
 conn.commit()
