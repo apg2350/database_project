@@ -1,76 +1,74 @@
 import sqlite3
+import csv
+import math
 
-def task3(cursor):
-    print("Task 3: Max/Min X-axis per Robot:")
-    cursor.execute('''
-        SELECT R.Name, MAX(S.X_Axis), MIN(S.X_Axis)
-        FROM Robot R
-        JOIN SensorReading S ON R.RobotID = S.RobotID
-        GROUP BY R.Name;
-    ''')
-    for row in cursor.fetchall():
-        print(row)
+# Create and connect to the database
+conn = sqlite3.connect('robot.db')
+cursor = conn.cursor()
 
-    print("\nTask 3: Max/Min Y-axis per Robot:")
-    cursor.execute('''
-        SELECT R.Name, MAX(S.Y_Axis), MIN(S.Y_Axis)
-        FROM Robot R
-        JOIN SensorReading S ON R.RobotID = S.RobotID
-        GROUP BY R.Name;
-    ''')
-    for row in cursor.fetchall():
-        print(row)
+# Create tables
+cursor.execute('''CREATE TABLE IF NOT EXISTS Robot (
+    RobotID INTEGER PRIMARY KEY,
+    Name TEXT
+);''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS SensorReading (
+    RobotID INTEGER,
+    X_Axis REAL,
+    Y_Axis REAL,
+    Timestamp INTEGER,
+    FOREIGN KEY(RobotID) REFERENCES Robot(RobotID)
+);''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS TargetInterval (
+    StartTime INTEGER,
+    EndTime INTEGER,
+    EventType TEXT
+);''')
 
-def task4(cursor, threshold=1):
-    print("\nTask 4: Regions where 'Astro' and 'IamHuman' are close at each timestamp (threshold = 1 cm):")
-    cursor.execute('''
-        SELECT
-          a.Timestamp,
-          MIN(a.X_Axis) AS x_min,
-          MAX(a.X_Axis) AS x_max,
-          MIN(a.Y_Axis) AS y_min,
-          MAX(a.Y_Axis) AS y_max
-        FROM SensorReading a
-        JOIN SensorReading b ON a.Timestamp = b.Timestamp
-        JOIN Robot ra ON a.RobotID = ra.RobotID
-        JOIN Robot rb ON b.RobotID = rb.RobotID
-        WHERE ra.Name = 'Astro' AND rb.Name = 'IamHuman'
-          AND ABS(a.X_Axis - b.X_Axis) < ?
-          AND ABS(a.Y_Axis - b.Y_Axis) < ?
-        GROUP BY a.Timestamp
-        ORDER BY a.Timestamp;
-    ''', (threshold, threshold))
+# Import robots
+with open('robot.csv', 'r') as file:
+    reader = csv.reader(file)
+    for row in reader:
+        cursor.execute('INSERT INTO Robot (RobotID, Name) VALUES (?, ?);', (int(row[0]), row[1]))
 
-    regions = cursor.fetchall()
-    if regions:
-        for r in regions:
-            print(f"Timestamp: {r[0]}, X: [{r[1]}, {r[2]}], Y: [{r[3]}, {r[4]}]")
-    else:
-        print("No close regions found.")
+# Import sensor readings
+for i in range(1, 6):
+    with open(f't{i}.csv', 'r') as file:
+        reader = csv.reader(file)
+        timestamp = 1
+        for row in reader:
+            try:
+                x_axis = float(row[0])
+                y_axis = float(row[1])
+                cursor.execute('INSERT INTO SensorReading (RobotID, X_Axis, Y_Axis, Timestamp) VALUES (?, ?, ?, ?);', (i, x_axis, y_axis, timestamp))
+                timestamp += 1
+            except ValueError:
+                continue
 
-    print("\nTask 4: Total seconds 'Astro' and 'IamHuman' are close (threshold = 1 cm):")
-    cursor.execute('''
-        SELECT COUNT(*)
-        FROM SensorReading a
-        JOIN SensorReading b ON a.Timestamp = b.Timestamp
-        JOIN Robot ra ON a.RobotID = ra.RobotID
-        JOIN Robot rb ON b.RobotID = rb.RobotID
-        WHERE ra.Name = 'Astro' AND rb.Name = 'IamHuman'
-          AND ABS(a.X_Axis - b.X_Axis) < ?
-          AND ABS(a.Y_Axis - b.Y_Axis) < ?;
-    ''', (threshold, threshold))
+# Import target intervals
+with open('target_interval.csv', 'r') as file:
+    reader = csv.reader(file)
+    for row in reader:
+        cursor.execute('INSERT INTO TargetInterval (StartTime, EndTime, EventType) VALUES (?, ?, ?);', (int(row[0]), int(row[1]), row[2]))
 
-    count = cursor.fetchone()[0]
-    print(count)
+# Commit the changes
+conn.commit()
 
-def main():
-    conn = sqlite3.connect('robot.db')
-    cursor = conn.cursor()
+# Bonus Task: Calculate average speed per interval
+print('\nBonus Task: Average speed check (threshold = 0.2 cm/s)')
+query_speed = '''
+SELECT ti.rowid, 
+       AVG((SQRT((sr2.X_Axis - sr1.X_Axis) * (sr2.X_Axis - sr1.X_Axis) + 
+                (sr2.Y_Axis - sr1.Y_Axis) * (sr2.Y_Axis - sr1.Y_Axis))) / (sr2.Timestamp - sr1.Timestamp)) AS avg_speed
+FROM SensorReading sr1
+JOIN SensorReading sr2 ON sr1.RobotID = sr2.RobotID AND sr2.Timestamp = sr1.Timestamp + 1
+JOIN TargetInterval ti ON sr1.Timestamp BETWEEN ti.StartTime AND ti.EndTime
+GROUP BY ti.rowid;
+'''
+cursor.execute(query_speed)
+for row in cursor.fetchall():
+    interval_id, avg_speed = row
+    result = 'Yes' if avg_speed < 0.2 else 'No'
+    print(f'Interval {interval_id}: {result}')
 
-    task3(cursor)
-    task4(cursor, threshold=1)
-
-    conn.close()
-
-if __name__ == "__main__":
-    main()
+# Close the connection
+conn.close()
